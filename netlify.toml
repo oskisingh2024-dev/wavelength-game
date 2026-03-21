@@ -1,0 +1,22 @@
+[build]
+  # Command to run before deploying
+  command = "npm install"
+  # Directory to deploy (current directory since it's just HTML)
+  publish = "."
+
+# Redirect all routes to index.html (for SPA)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cache settings
+[cache]
+  skip_processing = false
+
+# Headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"

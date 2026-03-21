@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wavelength Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes blob-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes scale-up {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes spin-pointer {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(1080deg); }
+        }
+
+        .blob-avatar {
+            animation: blob-float 6s ease-in-out infinite;
+        }
+
+        .scale-up-animation {
+            animation: scale-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .hidden-screen {
+            display: none !important;
+        }
+
+        .visible-screen {
+            display: block !important;
+        }
+
+        /* Semicircle wheel */
+        .wavelength-wheel {
+            position: relative;
+            width: 300px;
+            height: 150px;
+            margin: 0 auto 30px;
+        }
+
+        .wheel-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .pointer-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 3px;
+            height: 30px;
+            background: #333;
+            transform: translateX(-50%);
+            z-index: 20;
+        }
+
+        .pointer-triangle {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 15px solid #333;
+            transform: translateX(-50%);
+            z-index: 20;
+        }
+
+        .spinning-pointer {
+            animation: spin-pointer 2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="visible-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8 flex items-center justify-center">
+        <div class="max-w-2xl w-full">
+            <div class="text-center mb-12">
+                <h1 class="text-6xl font-black bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-2">
+                    WAVELENGTH
+                </h1>
+                <p class="text-xl text-gray-600 font-semibold">Think. Guess. Win.</p>
+            </div>
+
+            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
+                <p class="text-center text-gray-600 mb-6">Enter your details to join the game</p>
+                <div class="space-y-4">
+                    <input
+                        id="playerNameInput"
+                        type="text"
+                        placeholder="Your name..."
+                        maxlength="15"
+                        class="w-full px-6 py-3 rounded-full border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50"
+                    />
+                    <input
+                        id="gameCodeInput"
+                        type="text"
+                        placeholder="Game code (share with friend)..."
+                        maxlength="10"
+                        class="w-full px-6 py-3 rounded-full border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50"
+                    />
+                    <button
+                        id="joinGameBtn"
+                        class="w-full px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
+                    >
+                        Join Game
+                    </button>
+                </div>
+                <p class="text-center text-xs text-gray-500 mt-4">Both players must enter the same game code</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- WAITING SCREEN -->
+    <div id="waitingScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8 flex items-center justify-center">
+        <div class="max-w-2xl w-full">
+            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
+                <h2 class="text-4xl font-black text-purple-600 mb-6 text-center">Waiting for Players</h2>
+                
+                <div id="playersList" class="mb-8"></div>
+
+                <div class="bg-purple-100 rounded-2xl p-6 mb-6 text-center">
+                    <p class="text-gray-700 font-semibold mb-2">Game Code:</p>
+                    <p id="displayGameCode" class="text-3xl font-black text-purple-600 font-mono"></p>
+                </div>
+
+                <button
+                    id="startGameBtn"
+                    disabled
+                    class="w-full px-8 py-4 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all cursor-pointer"
+                >
+                    Start Game (Need 2 Players)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WHEEL SPIN SCREEN -->
+    <div id="wheelSpinScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 id="wheelTurnText" class="text-4xl font-black text-purple-600 mb-4"></h2>
+                <div id="wheelPlayerAvatar" class="flex justify-center"></div>
+            </div>
+
+            <div class="wavelength-wheel">
+                <svg class="wheel-svg" viewBox="0 0 400 200">
+                    <!-- Gradient definition -->
+                    <defs>
+                        <linearGradient id="leftGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FFB6D9;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#FFE5F0;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="rightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="50%" style="stop-color:#B6E5FF;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#E5F5FF;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <!-- Left side (pink) -->
+                    <path d="M 200 200 A 180 180 0 0 0 20 200 L 200 200" fill="url(#leftGradient)" stroke="#ddd" stroke-width="2"/>
+                    
+                    <!-- Right side (blue) -->
+                    <path d="M 200 200 A 180 180 0 0 1 380 200 L 200 200" fill="url(#rightGradient)" stroke="#ddd" stroke-width="2"/>
+                    
+                    <!-- Labels -->
+                    <text x="80" y="80" text-anchor="middle" class="text-sm font-bold fill-pink-600" style="font-size: 14px; font-weight: bold;">
+                        <tspan id="wheelLeftLabel"></tspan>
+                    </text>
+                    <text x="320" y="80" text-anchor="middle" class="text-sm font-bold fill-blue-600" style="font-size: 14px; font-weight: bold;">
+                        <tspan id="wheelRightLabel"></tspan>
+                    </text>
+                </svg>
+                
+                <div class="pointer-triangle"></div>
+                <div id="spinningPointer" class="pointer-line"></div>
+            </div>
+
+            <button
+                id="spinBtn"
+                class="block mx-auto px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
+            >
+                Spin Wheel
+            </button>
+
+            <div class="text-center text-gray-600 mt-8">
+                <p class="text-sm">Get ready to give a clue!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLUE WRITING SCREEN -->
+    <div id="clueWritingScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black text-purple-600 mb-4">Write Your Clue</h2>
+                <div id="cluePlayerAvatar" class="flex justify-center"></div>
+            </div>
+
+            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
+                <p id="clueHelperText" class="text-center text-gray-600 mb-6"></p>
+
+                <div class="bg-gradient-to-r from-pink-100 to-blue-100 rounded-2xl p-6 mb-6">
+                    <p class="text-center font-bold text-gray-700">
+                        <span id="clueLeftText" class="text-pink-600"></span>
+                        <span class="text-gray-400 mx-3">←→</span>
+                        <span id="clueRightText" class="text-blue-600"></span>
+                    </p>
+                </div>
+
+                <textarea
+                    id="clueInput"
+                    placeholder="Write your clue here..."
+                    maxlength="200"
+                    class="w-full p-4 rounded-2xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50 resize-none h-24 font-medium"
+                ></textarea>
+
+                <p id="clueCounter" class="text-xs text-gray-500 mt-2 text-right">0/200</p>
+
+                <button
+                    id="sendClueBtn"
+                    disabled
+                    class="w-full mt-6 px-8 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all cursor-pointer"
+                >
+                    Send Clue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GUESSING SCREEN -->
+    <div id="guessingScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8">
+        <div class="max-w-2xl mx-auto">
+            <div class="text-center mb-8">
+                <h2 id="guessingPlayerName" class="text-3xl font-black text-purple-600 mb-4"></h2>
+                <div id="guessingPlayerAvatar" class="flex justify-center"></div>
+            </div>
+
+            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8 mb-6">
+                <p class="text-center text-gray-600 mb-6">The clue is:</p>
+                <div id="clueDisplay" class="bg-gradient-to-r from-pink-100 to-purple-100 rounded-2xl p-6 mb-6 text-center">
+                    <p class="text-2xl font-bold text-gray-800 italic"></p>
+                </div>
+
+                <p class="text-center text-gray-600 mb-6 font-semibold">
+                    Where on the wavelength does this go?
+                </p>
+
+                <div class="wavelength-wheel mb-8">
+                    <svg class="wheel-svg" viewBox="0 0 400 200">
+                        <defs>
+                            <linearGradient id="gLeftGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#FFB6D9;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#FFE5F0;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="gRightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="50%" style="stop-color:#B6E5FF;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#E5F5FF;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        
+                        <path d="M 200 200 A 180 180 0 0 0 20 200 L 200 200" fill="url(#gLeftGradient)" stroke="#ddd" stroke-width="2"/>
+                        <path d="M 200 200 A 180 180 0 0 1 380 200 L 200 200" fill="url(#gRightGradient)" stroke="#ddd" stroke-width="2"/>
+                        
+                        <text x="80" y="80" text-anchor="middle" style="font-size: 14px; font-weight: bold;">
+                            <tspan id="guessLeftLabel"></tspan>
+                        </text>
+                        <text x="320" y="80" text-anchor="middle" style="font-size: 14px; font-weight: bold;">
+                            <tspan id="guessRightLabel"></tspan>
+                        </text>
+                    </svg>
+                    
+                    <div class="pointer-triangle"></div>
+                    <div id="guessPointer" class="pointer-line" style="cursor: pointer;"></div>
+                </div>
+
+                <p class="text-center text-gray-600 mb-6 font-semibold">Click on the wheel or use buttons below</p>
+
+                <div class="space-y-3">
+                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-pink-300 to-pink-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="0">
+                        Left Edge
+                    </button>
+                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-purple-300 to-purple-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="45">
+                        Left Quarter
+                    </button>
+                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-blue-300 to-blue-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="90">
+                        Center
+                    </button>
+                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-purple-300 to-purple-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="135">
+                        Right Quarter
+                    </button>
+                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-pink-300 to-pink-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="179">
+                        Right Edge
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCORE REVEAL SCREEN -->
+    <div id="scoreRevealScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8 flex items-center justify-center">
+        <div class="max-w-2xl w-full">
+            <div class="bg-white bg-opacity-90 backdrop-blur rounded-3xl shadow-2xl p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-4xl font-black text-purple-600 mb-6">Score Reveal!</h2>
+                    <div id="scoreRevealAvatar" class="flex justify-center"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="bg-pink-50 rounded-2xl p-6 text-center">
+                        <p class="text-sm text-gray-600 mb-2">Your Guess</p>
+                        <p id="guessedScore" class="text-4xl font-black text-pink-500"></p>
+                    </div>
+                    <div class="bg-blue-50 rounded-2xl p-6 text-center">
+                        <p class="text-sm text-gray-600 mb-2">Actual</p>
+                        <p id="actualScore" class="text-4xl font-black text-blue-500"></p>
+                    </div>
+                </div>
+
+                <div id="scoreMessage" class="rounded-2xl p-8 text-center mb-8"></div>
+
+                <div class="bg-purple-50 rounded-2xl p-6 mb-8">
+                    <h3 class="font-bold text-gray-700 mb-3">Current Scores:</h3>
+                    <div id="scoresList" class="space-y-2"></div>
+                </div>
+
+                <button
+                    id="nextRoundBtn"
+                    class="w-full px-8 py-4 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
+                >
+                    Next Round
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="gameOverScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8 flex items-center justify-center">
+        <div class="max-w-2xl w-full">
+            <div class="bg-white bg-opacity-90 backdrop-blur rounded-3xl shadow-2xl p-8 text-center">
+                <h1 class="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-8">
+                    Game Over!
+                </h1>
+
+                <div class="text-6xl mb-6">🏆</div>
+
+                <div id="winnerAvatar" class="mb-8"></div>
+
+                <h2 id="winnerName" class="text-4xl font-black text-purple-600 mb-2"></h2>
+                <p id="winnerScore" class="text-3xl font-bold text-blue-600 mb-8"></p>
+
+                <div class="bg-purple-50 rounded-2xl p-6 mb-8">
+                    <h3 class="font-bold text-gray-700 mb-3">Final Scores:</h3>
+                    <div id="finalScoresList" class="space-y-2"></div>
+                </div>
+
+                <button
+                    id="playAgainBtn"
+                    class="w-full px-8 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
+                >
+                    Play Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Update this URL when deploying
+        // Local: '' (empty for localhost)
+        // Production: 'https://your-railway-url.up.railway.app'
+        const BACKEND_URL = '';
+        
+        const socket = BACKEND_URL ? io(BACKEND_URL) : io();
+
+        let gameState = {
+            playerName: '',
+            gameCode: '',
+            playerColor: '',
+            players: [],
+            scores: {},
+            currentQuestion: null,
+            currentPlayerName: '',
+            currentPlayerColor: '',
+            pointerPosition: null,
+            guessPosition: null,
+        };
+
+        const colors = ['#FF6B9D', '#C44569', '#FFA502', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FFB6C1'];
+
+        function showScreen(screenId) {
+            document.querySelectorAll('[id$="Screen"]').forEach(el => {
+                el.classList.add('hidden-screen');
+                el.classList.remove('visible-screen');
+            });
+            const screen = document.getElementById(screenId);
+            if (screen) {
+                screen.classList.remove('hidden-screen');
+                screen.classList.add('visible-screen');
+            }
+        }
+
+        function createAvatarElement(name, color, size = 60) {
+            const html = `
+                <div class="flex flex-col items-center gap-2">
+                    <div class="blob-avatar relative flex items-center justify-center" style="width: ${size}px; height: ${size}px; background: ${color}; border-radius: 45% 55% 52% 48% / 48% 45% 55% 52%; box-shadow: 0 8px 20px ${color}40;">
+                        <div class="flex gap-2">
+                            <div class="w-2 h-2 bg-white rounded-full opacity-80"></div>
+                            <div class="w-2 h-2 bg-white rounded-full opacity-80"></div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-center max-w-16 truncate">${name}</span>
+                </div>
+            `;
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.firstElementChild;
+        }
+
+        // Join game
+        document.getElementById('joinGameBtn').addEventListener('click', () => {
+            const playerName = document.getElementById('playerNameInput').value.trim();
+            const gameCode = document.getElementById('gameCodeInput').value.trim().toUpperCase();
+
+            if (!playerName || !gameCode) {
+                alert('Please enter both name and game code');
+                return;
+            }
+
+            gameState.playerName = playerName;
+            gameState.gameCode = gameCode;
+
+            socket.emit('create_avatar', { playerName, gameCode });
+        });
+
+        // Avatar created
+        socket.on('avatar_created', ({ avatarId, color, gameCode }) => {
+            gameState.playerColor = color;
+            document.getElementById('displayGameCode').textContent = gameCode;
+            showScreen('waitingScreen');
+        });
+
+        // Players updated
+        socket.on('players_updated', ({ players, scores }) => {
+            gameState.players = players;
+            gameState.scores = scores;
+
+            const container = document.getElementById('playersList');
+            let html = '<h3 class="text-sm font-bold text-gray-600 mb-3">Players in Game:</h3><div class="grid grid-cols-2 gap-4">';
+            
+            players.forEach(player => {
+                html += `<div class="flex justify-center">
+                    ${createAvatarElement(player.name, player.color, 80).outerHTML}
+                </div>`;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+
+            if (players.length >= 2) {
+                document.getElementById('startGameBtn').disabled = false;
+            }
+        });
+
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            socket.emit('start_game', { gameCode: gameState.gameCode });
+        });
+
+        // Round started
+        socket.on('round_started', ({ currentQuestion, currentPlayerName, currentPlayerColor }) => {
+            gameState.currentQuestion = currentQuestion;
+            gameState.currentPlayerName = currentPlayerName;
+            gameState.currentPlayerColor = currentPlayerColor;
+
+            document.getElementById('wheelTurnText').textContent = currentPlayerName + "'s Turn";
+            document.getElementById('wheelPlayerAvatar').innerHTML = '';
+            document.getElementById('wheelPlayerAvatar').appendChild(
+                createAvatarElement(currentPlayerName, currentPlayerColor, 100)
+            );
+
+            document.getElementById('wheelLeftLabel').textContent = currentQuestion.left;
+            document.getElementById('wheelRightLabel').textContent = currentQuestion.right;
+            document.getElementById('clueLeftText').textContent = currentQuestion.left;
+            document.getElementById('clueRightText').textContent = currentQuestion.right;
+            document.getElementById('guessLeftLabel').textContent = currentQuestion.left;
+            document.getElementById('guessRightLabel').textContent = currentQuestion.right;
+
+            showScreen('wheelSpinScreen');
+
+            document.getElementById('spinBtn').onclick = () => {
+                socket.emit('spin_wheel', { gameCode: gameState.gameCode });
+                document.getElementById('spinBtn').disabled = true;
+            };
+        });
+
+        // Wheel spun
+        socket.on('wheel_spun', ({ pointerPosition, currentPlayerName }) => {
+            gameState.pointerPosition = pointerPosition;
+
+            if (gameState.playerName === currentPlayerName) {
+                // This player is writing the clue
+                document.getElementById('cluePlayerAvatar').innerHTML = '';
+                document.getElementById('cluePlayerAvatar').appendChild(
+                    createAvatarElement(gameState.playerName, gameState.playerColor, 90)
+                );
+                document.getElementById('clueHelperText').textContent = `Give a clue to help the other player guess where on the wavelength this goes:`;
+
+                const clueInput = document.getElementById('clueInput');
+                clueInput.value = '';
+                document.getElementById('clueCounter').textContent = '0/200';
+                document.getElementById('sendClueBtn').disabled = true;
+
+                clueInput.addEventListener('input', function() {
+                    document.getElementById('clueCounter').textContent = this.value.length + '/200';
+                    document.getElementById('sendClueBtn').disabled = this.value.trim().length === 0;
+                });
+
+                document.getElementById('sendClueBtn').onclick = () => {
+                    socket.emit('submit_clue', { gameCode: gameState.gameCode, clue: clueInput.value });
+                };
+
+                showScreen('clueWritingScreen');
+            } else {
+                // Wait for the clue
+                showScreen('waitingScreen');
+                document.getElementById('startGameBtn').disabled = true;
+                document.getElementById('startGameBtn').textContent = 'Waiting for clue...';
+            }
+        });
+
+        // Clue submitted
+        socket.on('clue_submitted', ({ clue, guessingPlayerName }) => {
+            gameState.currentClue = clue;
+
+            if (gameState.playerName === guessingPlayerName) {
+                // This player is guessing
+                const guessingPlayer = gameState.players.find(p => p.name === guessingPlayerName);
+                
+                document.getElementById('guessingPlayerName').textContent = guessingPlayerName + "'s Turn to Guess";
+                document.getElementById('guessingPlayerAvatar').innerHTML = '';
+                document.getElementById('guessingPlayerAvatar').appendChild(
+                    createAvatarElement(guessingPlayerName, guessingPlayer.color, 90)
+                );
+
+                document.getElementById('clueDisplay').innerHTML = `<p class="text-2xl font-bold text-gray-800 italic">"${clue}"</p>`;
+
+                let selectedPosition = null;
+
+                document.querySelectorAll('.guess-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        selectedPosition = parseInt(btn.dataset.value);
+                        const pointer = document.getElementById('guessPointer');
+                        pointer.style.transform = `rotate(${selectedPosition}deg)`;
+                        
+                        // Highlight selected button
+                        document.querySelectorAll('.guess-btn').forEach(b => b.classList.remove('ring-4', 'ring-yellow-300'));
+                        btn.classList.add('ring-4', 'ring-yellow-300');
+                    };
+                });
+
+                // Click on wheel to set position
+                document.getElementById('guessingScreen').querySelector('.wavelength-wheel svg').addEventListener('click', (e) => {
+                    const svg = e.currentTarget;
+                    const rect = svg.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const angle = Math.atan2(y - (rect.height / 2), x - (rect.width / 2)) * (180 / Math.PI);
+                    const normalizedAngle = (angle + 90 + 360) % 180;
+                    selectedPosition = Math.round(normalizedAngle);
+
+                    const pointer = document.getElementById('guessPointer');
+                    pointer.style.transform = `rotate(${selectedPosition}deg)`;
+                });
+
+                // Create confirm button
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = 'Lock in Guess';
+                confirmBtn.className = 'w-full mt-4 px-8 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer';
+                confirmBtn.onclick = () => {
+                    if (selectedPosition !== null) {
+                        socket.emit('submit_guess', { gameCode: gameState.gameCode, guessPosition: selectedPosition });
+                    }
+                };
+                document.getElementById('guessingScreen').querySelector('.space-y-3').parentElement.appendChild(confirmBtn);
+
+                showScreen('guessingScreen');
+            } else {
+                showScreen('waitingScreen');
+                document.getElementById('startGameBtn').disabled = true;
+                document.getElementById('startGameBtn').textContent = 'Waiting for guess...';
+            }
+        });
+
+        // Score revealed
+        socket.on('score_revealed', ({ pointerPosition, guessPosition, points, currentScores }) => {
+            gameState.pointerPosition = pointerPosition;
+            gameState.guessPosition = guessPosition;
+            gameState.scores = currentScores;
+
+            const guessingPlayer = gameState.players.find(p => p.name !== gameState.currentPlayerName);
+            
+            document.getElementById('scoreRevealAvatar').innerHTML = '';
+            document.getElementById('scoreRevealAvatar').appendChild(
+                createAvatarElement(guessingPlayer.name, guessingPlayer.color, 100)
+            );
+
+            document.getElementById('guessedScore').textContent = guessPosition + '°';
+            document.getElementById('actualScore').textContent = pointerPosition + '°';
+
+            const scoreMessageDiv = document.getElementById('scoreMessage');
+            if (points > 0) {
+                scoreMessageDiv.className = 'scale-up-animation bg-gradient-to-r from-yellow-200 to-yellow-300 rounded-2xl p-8 text-center mb-8';
+                scoreMessageDiv.innerHTML = `<p class="text-gray-700 font-bold text-lg mb-2">🎉 Correct! 🎉</p><p class="text-5xl font-black text-yellow-700">+${points} Points</p>`;
+            } else {
+                scoreMessageDiv.className = 'bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl p-8 text-center mb-8';
+                scoreMessageDiv.innerHTML = `<p class="text-gray-700 font-bold text-lg">Not quite...</p><p class="text-3xl font-black text-gray-600">0 Points</p>`;
+            }
+
+            updateScoresDisplay();
+            showScreen('scoreRevealScreen');
+
+            document.getElementById('nextRoundBtn').onclick = () => {
+                socket.emit('next_round', { gameCode: gameState.gameCode });
+            };
+        });
+
+        function updateScoresDisplay() {
+            const container = document.getElementById('scoresList');
+            let html = '';
+            Object.entries(gameState.scores).forEach(([name, score]) => {
+                html += `<div class="flex justify-between items-center"><span class="font-semibold text-gray-700">${name}</span><span class="text-2xl font-black text-purple-600">${score}</span></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // Game over
+        socket.on('game_over', ({ scores }) => {
+            gameState.scores = scores;
+            const winner = Object.entries(scores).reduce((a, b) => (a[1] > b[1] ? a : b));
+            const winnerPlayer = gameState.players.find(p => p.name === winner[0]);
+
+            document.getElementById('winnerAvatar').innerHTML = '';
+            document.getElementById('winnerAvatar').appendChild(
+                createAvatarElement(winnerPlayer.name, winnerPlayer.color, 120)
+            );
+
+            document.getElementById('winnerName').textContent = winner[0] + ' Wins!';
+            document.getElementById('winnerScore').textContent = winner[1] + ' Points';
+
+            const finalScoresContainer = document.getElementById('finalScoresList');
+            let html = '';
+            const medals = ['🥇', '🥈', '🥉'];
+            Object.entries(scores)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([name, score], idx) => {
+                    html += `<div class="flex justify-between items-center"><span class="font-semibold text-gray-700">${medals[idx] || ''} ${name}</span><span class="text-2xl font-black text-purple-600">${score}</span></div>`;
+                });
+            finalScoresContainer.innerHTML = html;
+
+            showScreen('gameOverScreen');
+
+            document.getElementById('playAgainBtn').onclick = () => {
+                location.reload();
+            };
+        });
+
+        // Input validation
+        document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('joinGameBtn').click();
+        });
+
+        document.getElementById('gameCodeInput').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>
