@@ -266,66 +266,52 @@
                     Where on the wavelength does this go?
                 </p>
 
-                <div style="position: relative; width: 100%; max-width: 500px; margin: 0 auto 30px; aspect-ratio: 2;">
-                    <!-- Semicircle Wheel -->
-                    <svg class="wheel-svg" viewBox="0 0 400 200" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
-                        <defs>
-                            <linearGradient id="gLeftGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
-                                <stop offset="50%" style="stop-color:#FFE5F0;stop-opacity:1" />
-                            </linearGradient>
-                            <linearGradient id="gRightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="50%" style="stop-color:#B6E5FF;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#45B7D1;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
+                <!-- Wavelength Wheel Container -->
+                <div style="position: relative; width: 100%; max-width: 600px; margin: 0 auto 40px; display: flex; justify-content: center;">
+                    <div style="position: relative; width: 100%; max-width: 500px; aspect-ratio: 2/1;">
+                        <!-- SVG Semicircle Wheel -->
+                        <svg id="wavelengthWheel" viewBox="0 0 500 250" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+                            <defs>
+                                <linearGradient id="leftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#FFB6D9;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="rightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            
+                            <!-- Left semicircle (pink) - 0 to 180 degrees going left -->
+                            <path d="M 250 250 A 200 200 0 0 0 50 250" fill="url(#leftGrad)" stroke="white" stroke-width="3"/>
+                            
+                            <!-- Right semicircle (blue) - 0 to 180 degrees going right -->
+                            <path d="M 250 250 A 200 200 0 0 1 450 250" fill="url(#rightGrad)" stroke="white" stroke-width="3"/>
+                            
+                            <!-- Center point circle -->
+                            <circle cx="250" cy="250" r="25" fill="white" stroke="#333" stroke-width="2"/>
+                            <circle cx="250" cy="250" r="15" fill="#FF6B9D" opacity="0.5"/>
+                            
+                            <!-- Left label (above) -->
+                            <text x="150" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;">
+                                <tspan id="guessLeftLabel"></tspan>
+                            </text>
+                            
+                            <!-- Right label (above) -->
+                            <text x="350" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;">
+                                <tspan id="guessRightLabel"></tspan>
+                            </text>
+                        </svg>
                         
-                        <!-- Left semicircle (pink) -->
-                        <path d="M 200 200 A 150 150 0 0 0 50 200 L 200 200 Z" fill="url(#gLeftGradient)" stroke="#fff" stroke-width="2"/>
+                        <!-- Pointer - extends outward from center -->
+                        <div id="guessPointer" style="position: absolute; top: 50%; left: 50%; width: 200px; height: 8px; background: linear-gradient(to right, #FF6B9D, #45B7D1); border-radius: 4px; transform-origin: 0 50%; transform: translateY(-50%) rotate(0deg); cursor: grab; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 20; active: grabbing;"></div>
                         
-                        <!-- Right semicircle (blue) -->
-                        <path d="M 200 200 A 150 150 0 0 1 350 200 L 200 200 Z" fill="url(#gRightGradient)" stroke="#fff" stroke-width="2"/>
-                        
-                        <!-- Center circle -->
-                        <circle cx="200" cy="200" r="20" fill="white" stroke="#999" stroke-width="2"/>
-                        
-                        <!-- Left label -->
-                        <text x="100" y="60" text-anchor="middle" style="font-size: 16px; font-weight: bold; fill: #333;">
-                            <tspan id="guessLeftLabel"></tspan>
-                        </text>
-                        
-                        <!-- Right label -->
-                        <text x="300" y="60" text-anchor="middle" style="font-size: 16px; font-weight: bold; fill: #333;">
-                            <tspan id="guessRightLabel"></tspan>
-                        </text>
-                    </svg>
-                    
-                    <!-- Pointer (rotates around center) -->
-                    <div id="guessPointer" style="position: absolute; top: 50%; left: 50%; width: 150px; height: 4px; background: linear-gradient(to right, #FF6B9D, #45B7D1); border-radius: 2px; transform-origin: 0 50%; transform: translateY(-50%) rotate(0deg); cursor: pointer; transition: transform 0.1s linear; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 10;"></div>
-                    
-                    <!-- Pointer head (at end of pointer) -->
-                    <div id="pointerHead" style="position: absolute; top: 50%; left: calc(50% + 150px); width: 16px; height: 16px; background: linear-gradient(135deg, #FF6B9D, #45B7D1); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none; z-index: 11;"></div>
+                        <!-- Pointer head (arrow at tip) -->
+                        <div id="pointerHead" style="position: absolute; top: 50%; left: calc(50% + 200px); width: 20px; height: 20px; background: linear-gradient(135deg, #FF6B9D, #45B7D1); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 35% 50%); transform: translate(-50%, -50%); box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 21; pointer-events: none;"></div>
+                    </div>
                 </div>
 
-                <p class="text-center text-gray-600 mb-6 font-semibold">Click on the wheel or use buttons below</p>
-
-                <div class="space-y-3">
-                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-pink-300 to-pink-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="0">
-                        Left Edge
-                    </button>
-                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-purple-300 to-purple-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="45">
-                        Left Quarter
-                    </button>
-                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-blue-300 to-blue-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="90">
-                        Center
-                    </button>
-                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-purple-300 to-purple-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="135">
-                        Right Quarter
-                    </button>
-                    <button class="guess-btn w-full px-8 py-4 bg-gradient-to-r from-pink-300 to-pink-400 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer" data-value="179">
-                        Right Edge
-                    </button>
-                </div>
+                <p class="text-center text-gray-600 mb-6 font-semibold">Drag the pointer or click on the wheel to guess</p>
             </div>
         </div>
     </div>
@@ -578,54 +564,57 @@
 
                 let selectedPosition = null;
                 const pointerDiv = document.getElementById('guessPointer');
-                const wheelContainer = document.getElementById('guessingScreen').querySelector('[style*="aspect-ratio"]');
+                const wheelSvg = document.getElementById('wavelengthWheel');
+                let isDragging = false;
                 
                 function rotatePointerToAngle(angle) {
+                    // Clamp angle to 0-180 (semicircle)
                     const clampedAngle = Math.max(0, Math.min(180, angle));
                     selectedPosition = Math.round(clampedAngle);
                     pointerDiv.style.transform = `translateY(-50%) rotate(${clampedAngle}deg)`;
-                    document.querySelectorAll('.guess-btn').forEach(b => b.classList.remove('ring-4', 'ring-yellow-300'));
                 }
 
-                // Guess buttons
-                document.querySelectorAll('.guess-btn').forEach(btn => {
-                    btn.onclick = () => {
-                        const angle = parseInt(btn.dataset.value);
-                        rotatePointerToAngle(angle);
-                        btn.classList.add('ring-4', 'ring-yellow-300');
-                    };
-                });
-
                 // Click on wheel to set position
-                wheelContainer.addEventListener('click', (e) => {
-                    const rect = wheelContainer.getBoundingClientRect();
+                wheelSvg.addEventListener('click', (e) => {
+                    const rect = wheelSvg.getBoundingClientRect();
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
                     const x = e.clientX - rect.left - centerX;
                     const y = e.clientY - rect.top - centerY;
+                    
+                    // Calculate angle (0-180 only, semicircle below)
                     let angle = Math.atan2(y, x) * (180 / Math.PI);
                     angle = (angle + 90 + 360) % 180;
-                    rotatePointerToAngle(angle);
+                    
+                    // Only allow clicks in lower semicircle
+                    if (y > -10) {
+                        rotatePointerToAngle(angle);
+                    }
                 });
 
                 // Drag pointer
-                let isDragging = false;
-                pointerDiv.addEventListener('mousedown', () => {
+                pointerDiv.addEventListener('mousedown', (e) => {
                     isDragging = true;
+                    pointerDiv.style.cursor = 'grabbing';
                 });
+
                 document.addEventListener('mousemove', (e) => {
                     if (!isDragging) return;
-                    const rect = wheelContainer.getBoundingClientRect();
+                    
+                    const rect = wheelSvg.getBoundingClientRect();
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
                     const x = e.clientX - rect.left - centerX;
                     const y = e.clientY - rect.top - centerY;
+                    
                     let angle = Math.atan2(y, x) * (180 / Math.PI);
                     angle = (angle + 90 + 360) % 180;
                     rotatePointerToAngle(angle);
                 });
+
                 document.addEventListener('mouseup', () => {
                     isDragging = false;
+                    pointerDiv.style.cursor = 'grab';
                 });
 
                 // Create confirm button
