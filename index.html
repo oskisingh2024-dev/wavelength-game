@@ -7,87 +7,61 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        @keyframes blob-float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        @keyframes scale-up {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes spin-pointer {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(1080deg); }
-        }
-
-        .blob-avatar {
-            animation: blob-float 6s ease-in-out infinite;
-        }
-
-        .scale-up-animation {
-            animation: scale-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-        }
-
-        .hidden-screen {
-            display: none !important;
-        }
-
-        .visible-screen {
-            display: block !important;
-        }
-
-        /* Semicircle wheel */
-        .wavelength-wheel {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @keyframes blob-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        @keyframes scale-up { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes spin-pointer { from { transform: translateY(-50%) rotate(0deg); } to { transform: translateY(-50%) rotate(1080deg); } }
+        .blob-avatar { animation: blob-float 6s ease-in-out infinite; }
+        .scale-up-animation { animation: scale-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .hidden-screen { display: none !important; }
+        .visible-screen { display: block !important; }
+        
+        /* Wheel Container */
+        .wheel-wrapper {
             position: relative;
-            width: 300px;
-            height: 150px;
-            margin: 0 auto 30px;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            aspect-ratio: 2/1;
         }
-
+        
         .wheel-svg {
             width: 100%;
             height: 100%;
         }
-
-        .pointer-line {
+        
+        .pointer {
             position: absolute;
-            top: 0;
+            top: 50%;
             left: 50%;
-            width: 3px;
-            height: 30px;
-            background: #333;
-            transform: translateX(-50%);
+            width: 200px;
+            height: 10px;
+            background: linear-gradient(to right, #FF6B9D 0%, #FFB6D9 40%, #45B7D1 60%, #4ECDC4 100%);
+            border-radius: 5px;
+            transform-origin: 0 50%;
+            transform: translateY(-50%) rotate(0deg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 20;
+            cursor: grab;
         }
-
-        .pointer-triangle {
+        
+        .pointer:active {
+            cursor: grabbing;
+        }
+        
+        .pointer-head {
             position: absolute;
-            top: 0;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 15px solid #333;
-            transform: translateX(-50%);
-            z-index: 20;
-        }
-
-        .spinning-pointer {
-            animation: spin-pointer 2s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+            top: 50%;
+            left: calc(50% + 200px);
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #FF6B9D, #4ECDC4);
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 35% 50%);
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            pointer-events: none;
+            z-index: 21;
         }
     </style>
 </head>
@@ -96,37 +70,16 @@
     <div id="loginScreen" class="visible-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8 flex items-center justify-center">
         <div class="max-w-2xl w-full">
             <div class="text-center mb-12">
-                <h1 class="text-6xl font-black bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-2">
-                    WAVELENGTH
-                </h1>
+                <h1 class="text-6xl font-black bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-2">WAVELENGTH</h1>
                 <p class="text-xl text-gray-600 font-semibold">Think. Guess. Win.</p>
             </div>
-
             <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
                 <p class="text-center text-gray-600 mb-6">Enter your details to join the game</p>
                 <div class="space-y-4">
-                    <input
-                        id="playerNameInput"
-                        type="text"
-                        placeholder="Your name..."
-                        maxlength="15"
-                        class="w-full px-6 py-3 rounded-full border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50"
-                    />
-                    <input
-                        id="gameCodeInput"
-                        type="text"
-                        placeholder="Game code (share with friend)..."
-                        maxlength="10"
-                        class="w-full px-6 py-3 rounded-full border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50"
-                    />
-                    <button
-                        id="joinGameBtn"
-                        class="w-full px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
-                    >
-                        Join Game
-                    </button>
+                    <input id="playerNameInput" type="text" placeholder="Your name..." maxlength="15" class="w-full px-6 py-3 rounded-full border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50" />
+                    <input id="gameCodeInput" type="text" placeholder="Game code..." maxlength="10" class="w-full px-6 py-3 rounded-full border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50" />
+                    <button id="joinGameBtn" class="w-full px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Join Game</button>
                 </div>
-                <p class="text-center text-xs text-gray-500 mt-4">Both players must enter the same game code</p>
             </div>
         </div>
     </div>
@@ -136,21 +89,12 @@
         <div class="max-w-2xl w-full">
             <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
                 <h2 class="text-4xl font-black text-purple-600 mb-6 text-center">Waiting for Players</h2>
-                
                 <div id="playersList" class="mb-8"></div>
-
                 <div class="bg-purple-100 rounded-2xl p-6 mb-6 text-center">
                     <p class="text-gray-700 font-semibold mb-2">Game Code:</p>
                     <p id="displayGameCode" class="text-3xl font-black text-purple-600 font-mono"></p>
                 </div>
-
-                <button
-                    id="startGameBtn"
-                    disabled
-                    class="w-full px-8 py-4 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all cursor-pointer"
-                >
-                    Start Game (Need 2 Players)
-                </button>
+                <button id="startGameBtn" disabled class="w-full px-8 py-4 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all cursor-pointer">Start Game</button>
             </div>
         </div>
     </div>
@@ -160,51 +104,34 @@
         <div class="max-w-4xl mx-auto">
             <div class="text-center mb-8">
                 <h2 id="wheelTurnText" class="text-4xl font-black text-purple-600 mb-4"></h2>
-                <div id="wheelPlayerAvatar" class="flex justify-center"></div>
+                <div id="wheelPlayerAvatar" class="flex justify-center mb-8"></div>
             </div>
 
-            <div class="wavelength-wheel">
-                <svg class="wheel-svg" viewBox="0 0 400 200">
-                    <!-- Gradient definition -->
+            <div class="wheel-wrapper">
+                <svg class="wheel-svg" viewBox="0 0 500 250">
                     <defs>
-                        <linearGradient id="leftGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#FFB6D9;stop-opacity:1" />
-                            <stop offset="50%" style="stop-color:#FFE5F0;stop-opacity:1" />
+                        <linearGradient id="leftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#FFB6D9;stop-opacity:1" />
                         </linearGradient>
-                        <linearGradient id="rightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="50%" style="stop-color:#B6E5FF;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#E5F5FF;stop-opacity:1" />
+                        <linearGradient id="rightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
                         </linearGradient>
                     </defs>
-                    
-                    <!-- Left side (pink) -->
-                    <path d="M 200 200 A 180 180 0 0 0 20 200 L 200 200" fill="url(#leftGradient)" stroke="#ddd" stroke-width="2"/>
-                    
-                    <!-- Right side (blue) -->
-                    <path d="M 200 200 A 180 180 0 0 1 380 200 L 200 200" fill="url(#rightGradient)" stroke="#ddd" stroke-width="2"/>
-                    
-                    <!-- Labels -->
-                    <text x="80" y="80" text-anchor="middle" class="text-sm font-bold fill-pink-600" style="font-size: 14px; font-weight: bold;">
-                        <tspan id="wheelLeftLabel"></tspan>
-                    </text>
-                    <text x="320" y="80" text-anchor="middle" class="text-sm font-bold fill-blue-600" style="font-size: 14px; font-weight: bold;">
-                        <tspan id="wheelRightLabel"></tspan>
-                    </text>
+                    <path d="M 250 250 A 200 200 0 0 0 50 250" fill="url(#leftGrad)" stroke="white" stroke-width="3"/>
+                    <path d="M 250 250 A 200 200 0 0 1 450 250" fill="url(#rightGrad)" stroke="white" stroke-width="3"/>
+                    <circle cx="250" cy="250" r="25" fill="white" stroke="#333" stroke-width="2"/>
+                    <circle cx="250" cy="250" r="15" fill="#FF6B9D" opacity="0.5"/>
+                    <text x="150" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="wheelLeftLabel"></tspan></text>
+                    <text x="350" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="wheelRightLabel"></tspan></text>
                 </svg>
-                
-                <div class="pointer-triangle"></div>
-                <div id="spinningPointer" class="pointer-line"></div>
+                <div id="spinningPointer" class="pointer"></div>
+                <div class="pointer-head"></div>
             </div>
 
-            <button
-                id="spinBtn"
-                class="block mx-auto px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
-            >
-                Spin Wheel
-            </button>
-
-            <div class="text-center text-gray-600 mt-8">
-                <p class="text-sm">Get ready to give a clue!</p>
+            <div class="text-center mt-12">
+                <button id="spinBtn" class="px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Spin Wheel</button>
             </div>
         </div>
     </div>
@@ -214,36 +141,20 @@
         <div class="max-w-2xl mx-auto">
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-black text-purple-600 mb-4">Write Your Clue</h2>
-                <div id="cluePlayerAvatar" class="flex justify-center"></div>
+                <div id="cluePlayerAvatar" class="flex justify-center mb-6"></div>
             </div>
 
             <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
                 <p id="clueHelperText" class="text-center text-gray-600 mb-6"></p>
 
                 <div class="bg-gradient-to-r from-pink-100 to-blue-100 rounded-2xl p-6 mb-6">
-                    <p class="text-center font-bold text-gray-700">
-                        <span id="clueLeftText" class="text-pink-600"></span>
-                        <span class="text-gray-400 mx-3">←→</span>
-                        <span id="clueRightText" class="text-blue-600"></span>
-                    </p>
+                    <p class="text-center font-bold text-gray-700"><span id="clueLeftText" class="text-pink-600"></span> <span class="text-gray-400 mx-3">←→</span> <span id="clueRightText" class="text-blue-600"></span></p>
                 </div>
 
-                <textarea
-                    id="clueInput"
-                    placeholder="Write your clue here..."
-                    maxlength="200"
-                    class="w-full p-4 rounded-2xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50 resize-none h-24 font-medium"
-                ></textarea>
-
+                <textarea id="clueInput" placeholder="Write your clue here..." maxlength="200" class="w-full p-4 rounded-2xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50 resize-none h-24 font-medium"></textarea>
                 <p id="clueCounter" class="text-xs text-gray-500 mt-2 text-right">0/200</p>
 
-                <button
-                    id="sendClueBtn"
-                    disabled
-                    class="w-full mt-6 px-8 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all cursor-pointer"
-                >
-                    Send Clue
-                </button>
+                <button id="sendClueBtn" disabled class="w-full mt-6 px-8 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all cursor-pointer">Send Clue</button>
             </div>
         </div>
     </div>
@@ -253,65 +164,43 @@
         <div class="max-w-2xl mx-auto">
             <div class="text-center mb-8">
                 <h2 id="guessingPlayerName" class="text-3xl font-black text-purple-600 mb-4"></h2>
-                <div id="guessingPlayerAvatar" class="flex justify-center"></div>
+                <div id="guessingPlayerAvatar" class="flex justify-center mb-6"></div>
             </div>
 
-            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8 mb-6">
+            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
                 <p class="text-center text-gray-600 mb-6">The clue is:</p>
-                <div id="clueDisplay" class="bg-gradient-to-r from-pink-100 to-purple-100 rounded-2xl p-6 mb-6 text-center">
+                <div id="clueDisplay" class="bg-gradient-to-r from-pink-100 to-purple-100 rounded-2xl p-6 mb-8 text-center">
                     <p class="text-2xl font-bold text-gray-800 italic"></p>
                 </div>
 
-                <p class="text-center text-gray-600 mb-6 font-semibold">
-                    Where on the wavelength does this go?
-                </p>
+                <p class="text-center text-gray-600 mb-8 font-semibold">Where on the wavelength does this go?</p>
 
-                <!-- Wavelength Wheel Container -->
-                <div style="position: relative; width: 100%; max-width: 600px; margin: 0 auto 40px; display: flex; justify-content: center;">
-                    <div style="position: relative; width: 100%; max-width: 500px; aspect-ratio: 2/1;">
-                        <!-- SVG Semicircle Wheel -->
-                        <svg id="wavelengthWheel" viewBox="0 0 500 250" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
-                            <defs>
-                                <linearGradient id="leftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#FFB6D9;stop-opacity:1" />
-                                </linearGradient>
-                                <linearGradient id="rightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
-                                </linearGradient>
-                            </defs>
-                            
-                            <!-- Left semicircle (pink) - 0 to 180 degrees going left -->
-                            <path d="M 250 250 A 200 200 0 0 0 50 250" fill="url(#leftGrad)" stroke="white" stroke-width="3"/>
-                            
-                            <!-- Right semicircle (blue) - 0 to 180 degrees going right -->
-                            <path d="M 250 250 A 200 200 0 0 1 450 250" fill="url(#rightGrad)" stroke="white" stroke-width="3"/>
-                            
-                            <!-- Center point circle -->
-                            <circle cx="250" cy="250" r="25" fill="white" stroke="#333" stroke-width="2"/>
-                            <circle cx="250" cy="250" r="15" fill="#FF6B9D" opacity="0.5"/>
-                            
-                            <!-- Left label (above) -->
-                            <text x="150" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;">
-                                <tspan id="guessLeftLabel"></tspan>
-                            </text>
-                            
-                            <!-- Right label (above) -->
-                            <text x="350" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;">
-                                <tspan id="guessRightLabel"></tspan>
-                            </text>
-                        </svg>
-                        
-                        <!-- Pointer - extends outward from center -->
-                        <div id="guessPointer" style="position: absolute; top: 50%; left: 50%; width: 200px; height: 8px; background: linear-gradient(to right, #FF6B9D, #45B7D1); border-radius: 4px; transform-origin: 0 50%; transform: translateY(-50%) rotate(0deg); cursor: grab; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 20; active: grabbing;"></div>
-                        
-                        <!-- Pointer head (arrow at tip) -->
-                        <div id="pointerHead" style="position: absolute; top: 50%; left: calc(50% + 200px); width: 20px; height: 20px; background: linear-gradient(135deg, #FF6B9D, #45B7D1); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 35% 50%); transform: translate(-50%, -50%); box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 21; pointer-events: none;"></div>
-                    </div>
+                <div class="wheel-wrapper">
+                    <svg class="wheel-svg" viewBox="0 0 500 250">
+                        <defs>
+                            <linearGradient id="guessLeftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#FFB6D9;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="guessRightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M 250 250 A 200 200 0 0 0 50 250" fill="url(#guessLeftGrad)" stroke="white" stroke-width="3"/>
+                        <path d="M 250 250 A 200 200 0 0 1 450 250" fill="url(#guessRightGrad)" stroke="white" stroke-width="3"/>
+                        <circle cx="250" cy="250" r="25" fill="white" stroke="#333" stroke-width="2"/>
+                        <circle cx="250" cy="250" r="15" fill="#FF6B9D" opacity="0.5"/>
+                        <text x="150" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="guessLeftLabel"></tspan></text>
+                        <text x="350" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="guessRightLabel"></tspan></text>
+                    </svg>
+                    <div id="guessPointer" class="pointer"></div>
+                    <div class="pointer-head"></div>
                 </div>
 
-                <p class="text-center text-gray-600 mb-6 font-semibold">Drag the pointer or click on the wheel to guess</p>
+                <p class="text-center text-gray-600 mt-8 mb-6">Drag the pointer or click the wheel to guess</p>
+
+                <button id="lockGuessBtn" class="w-full px-8 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Lock in Guess</button>
             </div>
         </div>
     </div>
@@ -343,12 +232,7 @@
                     <div id="scoresList" class="space-y-2"></div>
                 </div>
 
-                <button
-                    id="nextRoundBtn"
-                    class="w-full px-8 py-4 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
-                >
-                    Next Round
-                </button>
+                <button id="nextRoundBtn" class="w-full px-8 py-4 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Next Round</button>
             </div>
         </div>
     </div>
@@ -357,38 +241,23 @@
     <div id="gameOverScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8 flex items-center justify-center">
         <div class="max-w-2xl w-full">
             <div class="bg-white bg-opacity-90 backdrop-blur rounded-3xl shadow-2xl p-8 text-center">
-                <h1 class="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-8">
-                    Game Over!
-                </h1>
-
+                <h1 class="text-5xl font-black bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent mb-8">Game Over!</h1>
                 <div class="text-6xl mb-6">🏆</div>
-
                 <div id="winnerAvatar" class="mb-8"></div>
-
                 <h2 id="winnerName" class="text-4xl font-black text-purple-600 mb-2"></h2>
                 <p id="winnerScore" class="text-3xl font-bold text-blue-600 mb-8"></p>
-
                 <div class="bg-purple-50 rounded-2xl p-6 mb-8">
                     <h3 class="font-bold text-gray-700 mb-3">Final Scores:</h3>
                     <div id="finalScoresList" class="space-y-2"></div>
                 </div>
-
-                <button
-                    id="playAgainBtn"
-                    class="w-full px-8 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer"
-                >
-                    Play Again
-                </button>
+                <button id="playAgainBtn" class="w-full px-8 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Play Again</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuration - Update this URL when deploying
-        // Local: '' (empty for localhost)
-        // Production: 'https://your-railway-url.up.railway.app'
+        // Configuration
         const BACKEND_URL = 'https://wavelength-game-6ghj.onrender.com';
-        
         const socket = BACKEND_URL ? io(BACKEND_URL) : io();
 
         let gameState = {
@@ -402,9 +271,25 @@
             currentPlayerColor: '',
             pointerPosition: null,
             guessPosition: null,
+            currentClue: '',
         };
 
         const colors = ['#FF6B9D', '#C44569', '#FFA502', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FFB6C1'];
+
+        const wavelengthQuestions = [
+            { left: 'Tell Mom', right: 'Tell Dad' },
+            { left: 'Eat with Salad', right: 'Eat with Potato Chips' },
+            { left: 'Morning Person', right: 'Night Owl' },
+            { left: 'Beach Vacation', right: 'Mountain Cabin' },
+            { left: 'Action Movies', right: 'Romantic Comedies' },
+            { left: 'Coffee', right: 'Tea' },
+            { left: 'Early Bird', right: 'Procrastinator' },
+            { left: 'Video Games', right: 'Board Games' },
+            { left: 'City Living', right: 'Small Town' },
+            { left: 'Dogs', right: 'Cats' },
+            { left: 'Sweet Treats', right: 'Salty Snacks' },
+            { left: 'Winter', right: 'Summer' },
+        ];
 
         function showScreen(screenId) {
             document.querySelectorAll('[id$="Screen"]').forEach(el => {
@@ -435,46 +320,35 @@
             return div.firstElementChild;
         }
 
-        // Join game
+        // Join Game
         document.getElementById('joinGameBtn').addEventListener('click', () => {
             const playerName = document.getElementById('playerNameInput').value.trim();
             const gameCode = document.getElementById('gameCodeInput').value.trim().toUpperCase();
-
             if (!playerName || !gameCode) {
                 alert('Please enter both name and game code');
                 return;
             }
-
             gameState.playerName = playerName;
             gameState.gameCode = gameCode;
-
             socket.emit('create_avatar', { playerName, gameCode });
         });
 
-        // Avatar created
-        socket.on('avatar_created', ({ avatarId, color, gameCode }) => {
+        socket.on('avatar_created', ({ color, gameCode }) => {
             gameState.playerColor = color;
             document.getElementById('displayGameCode').textContent = gameCode;
             showScreen('waitingScreen');
         });
 
-        // Players updated
         socket.on('players_updated', ({ players, scores }) => {
             gameState.players = players;
             gameState.scores = scores;
-
             const container = document.getElementById('playersList');
             let html = '<h3 class="text-sm font-bold text-gray-600 mb-3">Players in Game:</h3><div class="grid grid-cols-2 gap-4">';
-            
             players.forEach(player => {
-                html += `<div class="flex justify-center">
-                    ${createAvatarElement(player.name, player.color, 80).outerHTML}
-                </div>`;
+                html += '<div class="flex justify-center">' + createAvatarElement(player.name, player.color, 80).outerHTML + '</div>';
             });
-            
             html += '</div>';
             container.innerHTML = html;
-
             if (players.length >= 2) {
                 document.getElementById('startGameBtn').disabled = false;
             }
@@ -484,7 +358,6 @@
             socket.emit('start_game', { gameCode: gameState.gameCode });
         });
 
-        // Round started
         socket.on('round_started', ({ currentQuestion, currentPlayerName, currentPlayerColor }) => {
             gameState.currentQuestion = currentQuestion;
             gameState.currentPlayerName = currentPlayerName;
@@ -492,9 +365,7 @@
 
             document.getElementById('wheelTurnText').textContent = currentPlayerName + "'s Turn";
             document.getElementById('wheelPlayerAvatar').innerHTML = '';
-            document.getElementById('wheelPlayerAvatar').appendChild(
-                createAvatarElement(currentPlayerName, currentPlayerColor, 100)
-            );
+            document.getElementById('wheelPlayerAvatar').appendChild(createAvatarElement(currentPlayerName, currentPlayerColor, 100));
 
             document.getElementById('wheelLeftLabel').textContent = currentQuestion.left;
             document.getElementById('wheelRightLabel').textContent = currentQuestion.right;
@@ -504,23 +375,18 @@
             document.getElementById('guessRightLabel').textContent = currentQuestion.right;
 
             showScreen('wheelSpinScreen');
-
             document.getElementById('spinBtn').onclick = () => {
                 socket.emit('spin_wheel', { gameCode: gameState.gameCode });
                 document.getElementById('spinBtn').disabled = true;
             };
         });
 
-        // Wheel spun
         socket.on('wheel_spun', ({ pointerPosition, currentPlayerName }) => {
             gameState.pointerPosition = pointerPosition;
-
+            
             if (gameState.playerName === currentPlayerName) {
-                // This player is writing the clue
                 document.getElementById('cluePlayerAvatar').innerHTML = '';
-                document.getElementById('cluePlayerAvatar').appendChild(
-                    createAvatarElement(gameState.playerName, gameState.playerColor, 90)
-                );
+                document.getElementById('cluePlayerAvatar').appendChild(createAvatarElement(gameState.playerName, gameState.playerColor, 90));
                 document.getElementById('clueHelperText').textContent = `Give a clue to help the other player guess where on the wavelength this goes:`;
 
                 const clueInput = document.getElementById('clueInput');
@@ -539,77 +405,55 @@
 
                 showScreen('clueWritingScreen');
             } else {
-                // Wait for the clue
                 showScreen('waitingScreen');
-                document.getElementById('startGameBtn').disabled = true;
-                document.getElementById('startGameBtn').textContent = 'Waiting for clue...';
             }
         });
 
-        // Clue submitted
-        socket.on('clue_submitted', ({ clue, guessingPlayerName }) => {
+        socket.on('clue_submitted', ({ clue, guessingPlayerName, guessingPlayerColor }) => {
             gameState.currentClue = clue;
 
             if (gameState.playerName === guessingPlayerName) {
-                // This player is guessing
-                const guessingPlayer = gameState.players.find(p => p.name === guessingPlayerName);
-                
                 document.getElementById('guessingPlayerName').textContent = guessingPlayerName + "'s Turn to Guess";
                 document.getElementById('guessingPlayerAvatar').innerHTML = '';
-                document.getElementById('guessingPlayerAvatar').appendChild(
-                    createAvatarElement(guessingPlayerName, guessingPlayer.color, 90)
-                );
-
+                document.getElementById('guessingPlayerAvatar').appendChild(createAvatarElement(guessingPlayerName, guessingPlayerColor, 90));
                 document.getElementById('clueDisplay').innerHTML = `<p class="text-2xl font-bold text-gray-800 italic">"${clue}"</p>`;
 
-                let selectedPosition = null;
                 const pointerDiv = document.getElementById('guessPointer');
-                const wheelSvg = document.getElementById('wavelengthWheel');
                 let isDragging = false;
-                
-                function rotatePointerToAngle(angle) {
-                    // Clamp angle to 0-180 (semicircle)
+
+                function rotatePointer(angle) {
                     const clampedAngle = Math.max(0, Math.min(180, angle));
-                    selectedPosition = Math.round(clampedAngle);
+                    gameState.guessPosition = Math.round(clampedAngle);
                     pointerDiv.style.transform = `translateY(-50%) rotate(${clampedAngle}deg)`;
                 }
 
-                // Click on wheel to set position
+                const wheelSvg = document.getElementById('guessingScreen').querySelector('.wheel-svg');
                 wheelSvg.addEventListener('click', (e) => {
                     const rect = wheelSvg.getBoundingClientRect();
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
                     const x = e.clientX - rect.left - centerX;
                     const y = e.clientY - rect.top - centerY;
-                    
-                    // Calculate angle (0-180 only, semicircle below)
                     let angle = Math.atan2(y, x) * (180 / Math.PI);
                     angle = (angle + 90 + 360) % 180;
-                    
-                    // Only allow clicks in lower semicircle
-                    if (y > -10) {
-                        rotatePointerToAngle(angle);
-                    }
+                    if (y > -10) rotatePointer(angle);
                 });
 
-                // Drag pointer
-                pointerDiv.addEventListener('mousedown', (e) => {
+                pointerDiv.addEventListener('mousedown', () => {
                     isDragging = true;
                     pointerDiv.style.cursor = 'grabbing';
                 });
 
                 document.addEventListener('mousemove', (e) => {
                     if (!isDragging) return;
-                    
                     const rect = wheelSvg.getBoundingClientRect();
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
                     const x = e.clientX - rect.left - centerX;
                     const y = e.clientY - rect.top - centerY;
-                    
                     let angle = Math.atan2(y, x) * (180 / Math.PI);
                     angle = (angle + 90 + 360) % 180;
-                    rotatePointerToAngle(angle);
+                    rotatePointer(angle);
                 });
 
                 document.addEventListener('mouseup', () => {
@@ -617,37 +461,26 @@
                     pointerDiv.style.cursor = 'grab';
                 });
 
-                // Create confirm button
-                const confirmBtn = document.createElement('button');
-                confirmBtn.textContent = 'Lock in Guess';
-                confirmBtn.className = 'w-full mt-4 px-8 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer';
-                confirmBtn.onclick = () => {
-                    if (selectedPosition !== null) {
-                        socket.emit('submit_guess', { gameCode: gameState.gameCode, guessPosition: selectedPosition });
+                document.getElementById('lockGuessBtn').onclick = () => {
+                    if (gameState.guessPosition !== null) {
+                        socket.emit('submit_guess', { gameCode: gameState.gameCode, guessPosition: gameState.guessPosition });
                     }
                 };
-                document.getElementById('guessingScreen').querySelector('.space-y-3').parentElement.appendChild(confirmBtn);
 
                 showScreen('guessingScreen');
             } else {
                 showScreen('waitingScreen');
-                document.getElementById('startGameBtn').disabled = true;
-                document.getElementById('startGameBtn').textContent = 'Waiting for guess...';
             }
         });
 
-        // Score revealed
         socket.on('score_revealed', ({ pointerPosition, guessPosition, points, currentScores }) => {
             gameState.pointerPosition = pointerPosition;
             gameState.guessPosition = guessPosition;
             gameState.scores = currentScores;
 
             const guessingPlayer = gameState.players.find(p => p.name !== gameState.currentPlayerName);
-            
             document.getElementById('scoreRevealAvatar').innerHTML = '';
-            document.getElementById('scoreRevealAvatar').appendChild(
-                createAvatarElement(guessingPlayer.name, guessingPlayer.color, 100)
-            );
+            document.getElementById('scoreRevealAvatar').appendChild(createAvatarElement(guessingPlayer.name, guessingPlayer.color, 100));
 
             document.getElementById('guessedScore').textContent = guessPosition + '°';
             document.getElementById('actualScore').textContent = pointerPosition + '°';
@@ -661,55 +494,43 @@
                 scoreMessageDiv.innerHTML = `<p class="text-gray-700 font-bold text-lg">Not quite...</p><p class="text-3xl font-black text-gray-600">0 Points</p>`;
             }
 
-            updateScoresDisplay();
-            showScreen('scoreRevealScreen');
-
-            document.getElementById('nextRoundBtn').onclick = () => {
-                socket.emit('next_round', { gameCode: gameState.gameCode });
-            };
-        });
-
-        function updateScoresDisplay() {
             const container = document.getElementById('scoresList');
             let html = '';
             Object.entries(gameState.scores).forEach(([name, score]) => {
                 html += `<div class="flex justify-between items-center"><span class="font-semibold text-gray-700">${name}</span><span class="text-2xl font-black text-purple-600">${score}</span></div>`;
             });
             container.innerHTML = html;
-        }
 
-        // Game over
-        socket.on('game_over', ({ scores }) => {
+            showScreen('scoreRevealScreen');
+            document.getElementById('nextRoundBtn').onclick = () => {
+                socket.emit('next_round', { gameCode: gameState.gameCode });
+            };
+        });
+
+        socket.on('game_over', ({ scores, players }) => {
             gameState.scores = scores;
             const winner = Object.entries(scores).reduce((a, b) => (a[1] > b[1] ? a : b));
             const winnerPlayer = gameState.players.find(p => p.name === winner[0]);
 
             document.getElementById('winnerAvatar').innerHTML = '';
-            document.getElementById('winnerAvatar').appendChild(
-                createAvatarElement(winnerPlayer.name, winnerPlayer.color, 120)
-            );
-
+            document.getElementById('winnerAvatar').appendChild(createAvatarElement(winnerPlayer.name, winnerPlayer.color, 120));
             document.getElementById('winnerName').textContent = winner[0] + ' Wins!';
             document.getElementById('winnerScore').textContent = winner[1] + ' Points';
 
             const finalScoresContainer = document.getElementById('finalScoresList');
             let html = '';
             const medals = ['🥇', '🥈', '🥉'];
-            Object.entries(scores)
-                .sort((a, b) => b[1] - a[1])
-                .forEach(([name, score], idx) => {
-                    html += `<div class="flex justify-between items-center"><span class="font-semibold text-gray-700">${medals[idx] || ''} ${name}</span><span class="text-2xl font-black text-purple-600">${score}</span></div>`;
-                });
+            Object.entries(scores).sort((a, b) => b[1] - a[1]).forEach(([name, score], idx) => {
+                html += `<div class="flex justify-between items-center"><span class="font-semibold text-gray-700">${medals[idx] || ''} ${name}</span><span class="text-2xl font-black text-purple-600">${score}</span></div>`;
+            });
             finalScoresContainer.innerHTML = html;
 
             showScreen('gameOverScreen');
-
             document.getElementById('playAgainBtn').onclick = () => {
                 location.reload();
             };
         });
 
-        // Input validation
         document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') document.getElementById('joinGameBtn').click();
         });
