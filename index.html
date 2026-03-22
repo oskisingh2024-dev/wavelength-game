@@ -109,7 +109,7 @@
             </div>
 
             <div class="wheel-container">
-                <svg class="w-full h-full" viewBox="0 0 500 250">
+                <svg class="w-full h-full" viewBox="0 0 500 250" style="position: relative; z-index: 10;">
                     <defs>
                         <linearGradient id="leftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
@@ -138,8 +138,8 @@
                         <polygon points="180,0 195,-7 195,7" fill="url(#pointerGrad)"/>
                     </g>
                 </svg>
-                <!-- Invisible draggable overlay -->
-                <div id="spinningPointer" class="pointer-line" style="pointer-events: auto; opacity: 0; z-index: 30;"></div>
+                <!-- Invisible draggable overlay - only covers pointer area -->
+                <div id="spinningPointer" class="pointer-line" style="pointer-events: auto; opacity: 0; z-index: 20; top: 50%; left: 50%; width: 200px; height: 10px; transform: translateY(-50%); border-radius: 5px; cursor: grab;"></div>
             </div>
 
             <div class="text-center mt-12">
@@ -157,7 +157,7 @@
             </div>
 
             <div class="wheel-container" style="max-width: 400px;">
-                <svg class="w-full h-full" viewBox="0 0 500 250">
+                <svg class="w-full h-full" viewBox="0 0 500 250" style="position: relative; z-index: 10;">
                     <defs>
                         <linearGradient id="clueLeftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
@@ -217,7 +217,7 @@
                 <p class="text-center text-gray-600 mb-8 font-semibold">Drag the pointer or click the wheel to guess</p>
 
                 <div class="wheel-container">
-                    <svg class="w-full h-full" viewBox="0 0 500 250">
+                    <svg class="w-full h-full" viewBox="0 0 500 250" style="position: relative; z-index: 10;">
                         <defs>
                             <linearGradient id="guessLeftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
@@ -243,8 +243,8 @@
                             <polygon points="180,0 195,-7 195,7" fill="url(#guessPointerGrad)"/>
                         </g>
                     </svg>
-                    <!-- Invisible draggable overlay -->
-                    <div id="guessPointer" class="pointer-line" style="pointer-events: auto; opacity: 0; z-index: 30;"></div>
+                    <!-- Invisible draggable overlay - only covers pointer area -->
+                    <div id="guessPointer" class="pointer-line" style="pointer-events: auto; opacity: 0; z-index: 20; top: 50%; left: 50%; width: 200px; height: 10px; transform: translateY(-50%); border-radius: 5px; cursor: grab;"></div>
                 </div>
 
                 <button id="lockGuessBtn" class="w-full mt-8 px-8 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Lock in Guess</button>
