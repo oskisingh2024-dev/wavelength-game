@@ -10,58 +10,59 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         @keyframes blob-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
         @keyframes scale-up { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes spin-pointer { from { transform: translateY(-50%) rotate(0deg); } to { transform: translateY(-50%) rotate(1080deg); } }
         .blob-avatar { animation: blob-float 6s ease-in-out infinite; }
         .scale-up-animation { animation: scale-up 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         .hidden-screen { display: none !important; }
         .visible-screen { display: block !important; }
         
-        /* Wheel Container */
-        .wheel-wrapper {
+        .wheel-container {
             position: relative;
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
             margin: 0 auto;
             aspect-ratio: 2/1;
         }
         
-        .wheel-svg {
-            width: 100%;
-            height: 100%;
-        }
-        
-        .pointer {
+        .pointer-group {
             position: absolute;
             top: 50%;
             left: 50%;
             width: 200px;
-            height: 10px;
-            background: linear-gradient(to right, #FF6B9D 0%, #FFB6D9 40%, #45B7D1 60%, #4ECDC4 100%);
-            border-radius: 5px;
-            transform-origin: 0 50%;
-            transform: translateY(-50%) rotate(0deg);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            height: 200px;
+            transform: translate(-50%, -50%);
             z-index: 20;
-            cursor: grab;
         }
         
-        .pointer:active {
+        .pointer-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180px;
+            height: 8px;
+            background: linear-gradient(to right, #FF6B9D, #45B7D1);
+            border-radius: 4px;
+            transform-origin: 0 50%;
+            transform: translateY(-50%) rotate(0deg);
+            cursor: grab;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .pointer-line:active {
             cursor: grabbing;
         }
         
         .pointer-head {
             position: absolute;
             top: 50%;
-            left: calc(50% + 200px);
+            left: calc(50% + 180px);
             width: 20px;
             height: 20px;
-            background: linear-gradient(135deg, #FF6B9D, #4ECDC4);
+            background: linear-gradient(135deg, #FF6B9D, #45B7D1);
             clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 35% 50%);
             transform: translate(-50%, -50%);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             pointer-events: none;
-            z-index: 21;
         }
     </style>
 </head>
@@ -102,13 +103,13 @@
     <!-- WHEEL SPIN SCREEN -->
     <div id="wheelSpinScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8">
         <div class="max-w-4xl mx-auto">
-            <div class="text-center mb-8">
+            <div class="text-center mb-12">
                 <h2 id="wheelTurnText" class="text-4xl font-black text-purple-600 mb-4"></h2>
                 <div id="wheelPlayerAvatar" class="flex justify-center mb-8"></div>
             </div>
 
-            <div class="wheel-wrapper">
-                <svg class="wheel-svg" viewBox="0 0 500 250">
+            <div class="wheel-container">
+                <svg class="w-full h-full" viewBox="0 0 500 250">
                     <defs>
                         <linearGradient id="leftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
@@ -118,16 +119,27 @@
                             <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
                             <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
                         </linearGradient>
+                        <linearGradient id="pointerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#45B7D1;stop-opacity:1" />
+                        </linearGradient>
                     </defs>
-                    <path d="M 250 250 A 200 200 0 0 0 50 250" fill="url(#leftGrad)" stroke="white" stroke-width="3"/>
-                    <path d="M 250 250 A 200 200 0 0 1 450 250" fill="url(#rightGrad)" stroke="white" stroke-width="3"/>
-                    <circle cx="250" cy="250" r="25" fill="white" stroke="#333" stroke-width="2"/>
-                    <circle cx="250" cy="250" r="15" fill="#FF6B9D" opacity="0.5"/>
-                    <text x="150" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="wheelLeftLabel"></tspan></text>
-                    <text x="350" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="wheelRightLabel"></tspan></text>
+                    <!-- Single proper semicircle - top half -->
+                    <path d="M 250 50 A 200 200 0 0 0 50 250 L 250 250 Z" fill="url(#leftGrad)" stroke="white" stroke-width="3"/>
+                    <path d="M 250 50 A 200 200 0 0 1 450 250 L 250 250 Z" fill="url(#rightGrad)" stroke="white" stroke-width="3"/>
+                    <!-- Center point -->
+                    <circle cx="250" cy="250" r="18" fill="white" stroke="#333" stroke-width="2"/>
+                    <!-- Labels -->
+                    <text x="120" y="90" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="wheelLeftLabel"></tspan></text>
+                    <text x="380" y="90" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="wheelRightLabel"></tspan></text>
+                    <!-- Pointer group - rotates from center -->
+                    <g id="spinningPointerGroup" transform="translate(250, 250) rotate(0)">
+                        <line x1="0" y1="0" x2="180" y2="0" stroke="url(#pointerGrad)" stroke-width="8" stroke-linecap="round"/>
+                        <polygon points="180,0 195,-7 195,7" fill="url(#pointerGrad)"/>
+                    </g>
                 </svg>
-                <div id="spinningPointer" class="pointer"></div>
-                <div class="pointer-head"></div>
+                <!-- Invisible draggable overlay -->
+                <div id="spinningPointer" class="pointer-line" style="pointer-events: auto; opacity: 0; z-index: 30;"></div>
             </div>
 
             <div class="text-center mt-12">
@@ -136,7 +148,7 @@
         </div>
     </div>
 
-    <!-- CLUE WRITING SCREEN -->
+    <!-- CLUE WRITING SCREEN (SAME WHEEL, HIDDEN POINTER) -->
     <div id="clueWritingScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8">
         <div class="max-w-2xl mx-auto">
             <div class="text-center mb-8">
@@ -144,11 +156,40 @@
                 <div id="cluePlayerAvatar" class="flex justify-center mb-6"></div>
             </div>
 
-            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8">
+            <div class="wheel-container" style="max-width: 400px;">
+                <svg class="w-full h-full" viewBox="0 0 500 250">
+                    <defs>
+                        <linearGradient id="clueLeftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#FFB6D9;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="clueRightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="cluePointerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#45B7D1;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M 250 50 A 200 200 0 0 0 50 250 L 250 250 Z" fill="url(#clueLeftGrad)" stroke="white" stroke-width="3"/>
+                    <path d="M 250 50 A 200 200 0 0 1 450 250 L 250 250 Z" fill="url(#clueRightGrad)" stroke="white" stroke-width="3"/>
+                    <circle cx="250" cy="250" r="18" fill="white" stroke="#333" stroke-width="2"/>
+                    <text x="120" y="90" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="clueLeftLabel"></tspan></text>
+                    <text x="380" y="90" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="clueRightLabel"></tspan></text>
+                    <!-- HIDDEN POINTER - shows faintly where answer is -->
+                    <g id="hiddenPointerGroup" transform="translate(250, 250) rotate(0)" opacity="0.3">
+                        <line x1="0" y1="0" x2="180" y2="0" stroke="url(#cluePointerGrad)" stroke-width="8" stroke-linecap="round"/>
+                        <polygon points="180,0 195,-7 195,7" fill="url(#cluePointerGrad)"/>
+                    </g>
+                </svg>
+            </div>
+
+            <div class="bg-white bg-opacity-80 backdrop-blur rounded-3xl shadow-2xl p-8 mt-8">
                 <p id="clueHelperText" class="text-center text-gray-600 mb-6"></p>
 
                 <div class="bg-gradient-to-r from-pink-100 to-blue-100 rounded-2xl p-6 mb-6">
-                    <p class="text-center font-bold text-gray-700"><span id="clueLeftText" class="text-pink-600"></span> <span class="text-gray-400 mx-3">←→</span> <span id="clueRightText" class="text-blue-600"></span></p>
+                    <p class="text-center font-bold text-gray-700"><span id="clueLeftText"></span> <span class="text-gray-400 mx-3">←→</span> <span id="clueRightText"></span></p>
                 </div>
 
                 <textarea id="clueInput" placeholder="Write your clue here..." maxlength="200" class="w-full p-4 rounded-2xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-pink-50 resize-none h-24 font-medium"></textarea>
@@ -159,7 +200,7 @@
         </div>
     </div>
 
-    <!-- GUESSING SCREEN -->
+    <!-- GUESSING SCREEN (VISIBLE WHEEL, DRAGGABLE POINTER) -->
     <div id="guessingScreen" class="hidden-screen min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-8">
         <div class="max-w-2xl mx-auto">
             <div class="text-center mb-8">
@@ -173,10 +214,10 @@
                     <p class="text-2xl font-bold text-gray-800 italic"></p>
                 </div>
 
-                <p class="text-center text-gray-600 mb-8 font-semibold">Where on the wavelength does this go?</p>
+                <p class="text-center text-gray-600 mb-8 font-semibold">Drag the pointer or click the wheel to guess</p>
 
-                <div class="wheel-wrapper">
-                    <svg class="wheel-svg" viewBox="0 0 500 250">
+                <div class="wheel-container">
+                    <svg class="w-full h-full" viewBox="0 0 500 250">
                         <defs>
                             <linearGradient id="guessLeftGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
@@ -186,21 +227,27 @@
                                 <stop offset="0%" style="stop-color:#45B7D1;stop-opacity:1" />
                                 <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
                             </linearGradient>
+                            <linearGradient id="guessPointerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#FF6B9D;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#45B7D1;stop-opacity:1" />
+                            </linearGradient>
                         </defs>
-                        <path d="M 250 250 A 200 200 0 0 0 50 250" fill="url(#guessLeftGrad)" stroke="white" stroke-width="3"/>
-                        <path d="M 250 250 A 200 200 0 0 1 450 250" fill="url(#guessRightGrad)" stroke="white" stroke-width="3"/>
-                        <circle cx="250" cy="250" r="25" fill="white" stroke="#333" stroke-width="2"/>
-                        <circle cx="250" cy="250" r="15" fill="#FF6B9D" opacity="0.5"/>
-                        <text x="150" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="guessLeftLabel"></tspan></text>
-                        <text x="350" y="80" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="guessRightLabel"></tspan></text>
+                        <path d="M 250 50 A 200 200 0 0 0 50 250 L 250 250 Z" fill="url(#guessLeftGrad)" stroke="white" stroke-width="3"/>
+                        <path d="M 250 50 A 200 200 0 0 1 450 250 L 250 250 Z" fill="url(#guessRightGrad)" stroke="white" stroke-width="3"/>
+                        <circle cx="250" cy="250" r="18" fill="white" stroke="#333" stroke-width="2"/>
+                        <text x="120" y="90" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="guessLeftLabel"></tspan></text>
+                        <text x="380" y="90" text-anchor="middle" style="font-size: 18px; font-weight: bold; fill: #333;"><tspan id="guessRightLabel"></tspan></text>
+                        <!-- Draggable pointer -->
+                        <g id="guessPointerGroup" transform="translate(250, 250) rotate(0)">
+                            <line x1="0" y1="0" x2="180" y2="0" stroke="url(#guessPointerGrad)" stroke-width="8" stroke-linecap="round"/>
+                            <polygon points="180,0 195,-7 195,7" fill="url(#guessPointerGrad)"/>
+                        </g>
                     </svg>
-                    <div id="guessPointer" class="pointer"></div>
-                    <div class="pointer-head"></div>
+                    <!-- Invisible draggable overlay -->
+                    <div id="guessPointer" class="pointer-line" style="pointer-events: auto; opacity: 0; z-index: 30;"></div>
                 </div>
 
-                <p class="text-center text-gray-600 mt-8 mb-6">Drag the pointer or click the wheel to guess</p>
-
-                <button id="lockGuessBtn" class="w-full px-8 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Lock in Guess</button>
+                <button id="lockGuessBtn" class="w-full mt-8 px-8 py-4 bg-gradient-to-r from-green-400 to-green-500 text-white font-bold rounded-full hover:shadow-lg transform hover:scale-105 transition-all cursor-pointer">Lock in Guess</button>
             </div>
         </div>
     </div>
@@ -256,7 +303,6 @@
     </div>
 
     <script>
-        // Configuration
         const BACKEND_URL = 'https://wavelength-game-6ghj.onrender.com';
         const socket = BACKEND_URL ? io(BACKEND_URL) : io();
 
@@ -320,6 +366,15 @@
             return div.firstElementChild;
         }
 
+        function rotatePointer(groupId, angle) {
+            const clampedAngle = Math.max(0, Math.min(180, angle));
+            const group = document.getElementById(groupId);
+            if (group) {
+                group.setAttribute('transform', `translate(250, 250) rotate(${clampedAngle})`);
+            }
+            return Math.round(clampedAngle);
+        }
+
         // Join Game
         document.getElementById('joinGameBtn').addEventListener('click', () => {
             const playerName = document.getElementById('playerNameInput').value.trim();
@@ -343,15 +398,11 @@
             gameState.players = players;
             gameState.scores = scores;
             const container = document.getElementById('playersList');
-            let html = '<h3 class="text-sm font-bold text-gray-600 mb-3">Players in Game:</h3><div class="grid grid-cols-2 gap-4">';
-            players.forEach(player => {
-                html += '<div class="flex justify-center">' + createAvatarElement(player.name, player.color, 80).outerHTML + '</div>';
-            });
+            let html = '<h3 class="text-sm font-bold text-gray-600 mb-3">Players:</h3><div class="grid grid-cols-2 gap-4">';
+            players.forEach(p => html += '<div class="flex justify-center">' + createAvatarElement(p.name, p.color, 80).outerHTML + '</div>');
             html += '</div>';
             container.innerHTML = html;
-            if (players.length >= 2) {
-                document.getElementById('startGameBtn').disabled = false;
-            }
+            document.getElementById('startGameBtn').disabled = players.length < 2;
         });
 
         document.getElementById('startGameBtn').addEventListener('click', () => {
@@ -367,12 +418,10 @@
             document.getElementById('wheelPlayerAvatar').innerHTML = '';
             document.getElementById('wheelPlayerAvatar').appendChild(createAvatarElement(currentPlayerName, currentPlayerColor, 100));
 
-            document.getElementById('wheelLeftLabel').textContent = currentQuestion.left;
-            document.getElementById('wheelRightLabel').textContent = currentQuestion.right;
-            document.getElementById('clueLeftText').textContent = currentQuestion.left;
-            document.getElementById('clueRightText').textContent = currentQuestion.right;
-            document.getElementById('guessLeftLabel').textContent = currentQuestion.left;
-            document.getElementById('guessRightLabel').textContent = currentQuestion.right;
+            ['wheelLeftLabel', 'wheelRightLabel', 'clueLeftLabel', 'clueRightLabel', 'clueLeftText', 'clueRightText', 'guessLeftLabel', 'guessRightLabel'].forEach(id => {
+                const isLeft = id.includes('Left');
+                document.getElementById(id).textContent = isLeft ? currentQuestion.left : currentQuestion.right;
+            });
 
             showScreen('wheelSpinScreen');
             document.getElementById('spinBtn').onclick = () => {
@@ -385,9 +434,13 @@
             gameState.pointerPosition = pointerPosition;
             
             if (gameState.playerName === currentPlayerName) {
+                // Player 1: Show wheel with hidden pointer
                 document.getElementById('cluePlayerAvatar').innerHTML = '';
                 document.getElementById('cluePlayerAvatar').appendChild(createAvatarElement(gameState.playerName, gameState.playerColor, 90));
                 document.getElementById('clueHelperText').textContent = `Give a clue to help the other player guess where on the wavelength this goes:`;
+
+                // Show hidden pointer at faint opacity
+                rotatePointer('hiddenPointerGroup', pointerPosition);
 
                 const clueInput = document.getElementById('clueInput');
                 clueInput.value = '';
@@ -413,52 +466,67 @@
             gameState.currentClue = clue;
 
             if (gameState.playerName === guessingPlayerName) {
+                // Player 2: Show interactive wheel
                 document.getElementById('guessingPlayerName').textContent = guessingPlayerName + "'s Turn to Guess";
                 document.getElementById('guessingPlayerAvatar').innerHTML = '';
                 document.getElementById('guessingPlayerAvatar').appendChild(createAvatarElement(guessingPlayerName, guessingPlayerColor, 90));
                 document.getElementById('clueDisplay').innerHTML = `<p class="text-2xl font-bold text-gray-800 italic">"${clue}"</p>`;
 
-                const pointerDiv = document.getElementById('guessPointer');
+                const wheelContainer = document.getElementById('guessingScreen').querySelector('.wheel-container');
+                const wheelSvg = wheelContainer.querySelector('svg');
+                const pointerElement = document.getElementById('guessPointer');
                 let isDragging = false;
 
-                function rotatePointer(angle) {
-                    const clampedAngle = Math.max(0, Math.min(180, angle));
-                    gameState.guessPosition = Math.round(clampedAngle);
-                    pointerDiv.style.transform = `translateY(-50%) rotate(${clampedAngle}deg)`;
-                }
-
-                const wheelSvg = document.getElementById('guessingScreen').querySelector('.wheel-svg');
+                // Click wheel
                 wheelSvg.addEventListener('click', (e) => {
                     const rect = wheelSvg.getBoundingClientRect();
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const x = e.clientX - rect.left - centerX;
-                    const y = e.clientY - rect.top - centerY;
+                    const svgCoords = wheelSvg.createSVGPoint();
+                    svgCoords.x = e.clientX;
+                    svgCoords.y = e.clientY;
+                    const transformed = svgCoords.matrixTransform(wheelSvg.getScreenCTM().inverse());
+                    
+                    const centerX = 250;
+                    const centerY = 250;
+                    const x = transformed.x - centerX;
+                    const y = transformed.y - centerY;
+                    
                     let angle = Math.atan2(y, x) * (180 / Math.PI);
                     angle = (angle + 90 + 360) % 180;
-                    if (y > -10) rotatePointer(angle);
+                    
+                    if (y > -20) {
+                        gameState.guessPosition = rotatePointer('guessPointerGroup', angle);
+                    }
                 });
 
-                pointerDiv.addEventListener('mousedown', () => {
+                // Drag pointer
+                pointerElement.addEventListener('mousedown', (e) => {
                     isDragging = true;
-                    pointerDiv.style.cursor = 'grabbing';
+                    pointerElement.style.cursor = 'grabbing';
+                    e.preventDefault();
                 });
 
                 document.addEventListener('mousemove', (e) => {
                     if (!isDragging) return;
+                    
                     const rect = wheelSvg.getBoundingClientRect();
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const x = e.clientX - rect.left - centerX;
-                    const y = e.clientY - rect.top - centerY;
+                    const svgCoords = wheelSvg.createSVGPoint();
+                    svgCoords.x = e.clientX;
+                    svgCoords.y = e.clientY;
+                    const transformed = svgCoords.matrixTransform(wheelSvg.getScreenCTM().inverse());
+                    
+                    const centerX = 250;
+                    const centerY = 250;
+                    const x = transformed.x - centerX;
+                    const y = transformed.y - centerY;
+                    
                     let angle = Math.atan2(y, x) * (180 / Math.PI);
                     angle = (angle + 90 + 360) % 180;
-                    rotatePointer(angle);
+                    gameState.guessPosition = rotatePointer('guessPointerGroup', angle);
                 });
 
                 document.addEventListener('mouseup', () => {
                     isDragging = false;
-                    pointerDiv.style.cursor = 'grab';
+                    pointerElement.style.cursor = 'grab';
                 });
 
                 document.getElementById('lockGuessBtn').onclick = () => {
@@ -507,7 +575,7 @@
             };
         });
 
-        socket.on('game_over', ({ scores, players }) => {
+        socket.on('game_over', ({ scores }) => {
             gameState.scores = scores;
             const winner = Object.entries(scores).reduce((a, b) => (a[1] > b[1] ? a : b));
             const winnerPlayer = gameState.players.find(p => p.name === winner[0]);
